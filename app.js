@@ -22,11 +22,25 @@ const intializeServerAndDatabase = async () => {
 }
 intializeServerAndDatabase()
 express.json()
+const convertDbObjectToResponseObject = dbObject => {
+  return {
+    playerId: dbObject.player_id,
+    playerName: dbObject.player_name,
+    jerseyNumber: dbObject.jersey_number,
+    role: dbObject.role,
+  }
+}
 
 app.get('/players/', async (request, response) => {
-  const query = `SELECT * FROM cricket_team`
-  let results = await db.all(query)
-  response.send(results)
+  const getPlayersQuery = `
+ SELECT
+ *
+ FROM
+ cricket_team;`
+  const playersArray = await database.all(getPlayersQuery)
+  response.send(
+    playersArray.map(eachPlayer => convertDbObjectToResponseObject(eachPlayer)),
+  )
 })
 
 app.post('/players/', async (request, response) => {
@@ -39,10 +53,16 @@ app.post('/players/', async (request, response) => {
 
 app.get('/players/:playerId/', async (request, response) => {
   let {playerId} = request.params
-
-  const query = `SELECT * FROM cricket_team WHERE player_id = ${playerId}`
-  const result = await db.get(query)
-  response.send(result)
+  const getPlayersQuery = `
+ SELECT
+ *
+ FROM
+ cricket_team
+ WHERE player_id = ${playerId};`
+  const playersArray = await database.get(getPlayersQuery)
+  response.send(
+    playersArray.map(eachPlayer => convertDbObjectToResponseObject(eachPlayer)),
+  )
 })
 
 app.put('/players/:playerId/', async (request, response) => {
