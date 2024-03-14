@@ -2,88 +2,81 @@ const express = require('express')
 const {open} = require('sqlite')
 const sqlite3 = require('sqlite3')
 const path = require('path')
-let db = null
-let app = express()
+const app = express()
+const dbPath = path.join(__dirname, 'cricketTeam.db')
 app.use(express.json())
-let dbpath = path.join(__dirname, 'cricketTeam.db')
-const intializeServerAndDatabase = async () => {
+let db = null
+const initializeServer = async () => {
   try {
     db = await open({
-      filename: dbpath,
+      filename: dbPath,
       driver: sqlite3.Database,
     })
     app.listen(3000, () => {
-      console.log('Server has started !!!')
+      console.log('Server started running!!!')
     })
   } catch (e) {
-    console.log(`Error DB :${e.message}`)
+    console.log(`Error DB : S{e.message}`)
     process.exit(1)
   }
 }
-intializeServerAndDatabase()
-express.json()
-const convertDbObjectToResponseObject = dbObject => {
+initializeServer()
+const convertToResponseObject = dbObj => {
   return {
-    playerId: dbObject.player_id,
-    playerName: dbObject.player_name,
-    jerseyNumber: dbObject.jersey_number,
-    role: dbObject.role,
+    playerId: dbObj.player_id,
+    playerName: dbObj.player_name,
+    jerseyNumber: dbObj.jersey_number,
+    role: dbObj.role,
   }
 }
 
 app.get('/players/', async (request, response) => {
-  const getPlayersQuery = `
- SELECT
- *
- FROM
- cricket_team;`
-  const playersArray = await database.all(getPlayersQuery)
-  response.send(
-    playersArray.map(eachPlayer => convertDbObjectToResponseObject(eachPlayer)),
-  )
+  const query = `SELECT * FROM cricket_team`
+  const result = await db.all(query)
+  response.send(result.map(eachObj => convertToResponseObject(eachObj)))
 })
 
 app.post('/players/', async (request, response) => {
   const playerDetails = request.body
   const {playerName, jerseyNumber, role} = playerDetails
-  const query = `INSERT INTO cricket_team(player_name,jersey_number,role) VALUES ('${playerName}',${jerseyNumber},'${role}');`
-  await db.run(query)
+  const queryPost = `
+    INSERT INTO 
+    cricket_team (player_name,jersey_number,role) 
+    VALUES('${playerName}',${jerseyNumber},'${role}')`
+  await db.run(queryPost)
   response.send('Player Added to Team')
 })
 
 app.get('/players/:playerId/', async (request, response) => {
   let {playerId} = request.params
-  const getPlayersQuery = `
- SELECT
- *
- FROM
- cricket_team
- WHERE player_id = ${playerId};`
-  const playersArray = await database.get(getPlayersQuery)
-  response.send(
-    playersArray.map(eachPlayer => convertDbObjectToResponseObject(eachPlayer)),
-  )
+  let query = `SELECT * FROM cricket_team
+    WHERE player_id = ${playerId}`
+  const result = db.get(query)
+  response.send(convertToResponseObject(result))
 })
 
 app.put('/players/:playerId/', async (request, response) => {
-  let {playerId} = request.params
+  const {playerId} = request.params
   const playerDetails = request.body
   const {playerName, jerseyNumber, role} = playerDetails
-  const query = `UPDATE cricket_team
-      SET 
-      playerName = '${playerName}',
-      jerseyNumber = ${jerseyNumber},
-      role = '${role}'
-      WHERE 
-      player_id = ${playerId}`
+  const query = `
+     UPDATE cricket_team
+     SET
+     player_name = '${playerName}',
+     jersey_number = ${jerseyNumber},
+     role = ${role}
+     WHERE 
+     player_id = ${playerId}`
   await db.run(query)
   response.send('Player Details Updated')
 })
 
 app.delete('/players/:playerId/', async (request, response) => {
-  let {playerId} = request.params
-  const query = `DELETE FROM cricket_team WHERE player_id = ${playerId}`
-  const result = await db.run(query)
+  const {playerId} = request.params
+  const query = `
+    DELETE FROM cricket_team
+    WHERE player_id = ${playerId}`
+  await db.run(query)
   response.send('Player Removed')
 })
 
